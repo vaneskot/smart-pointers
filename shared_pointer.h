@@ -23,16 +23,16 @@ class SharedPointer {
     explicit Ref(T* i_data);
     ~Ref();
 
-    void ref();
-    void deref();
+    void ref() const;
+    void deref() const;
 
-    T* data;
+    T* const data;
 
    private:
-    int count;
+    mutable int count;
   };
 
-  mutable Ref* m_ref;
+  const Ref* m_ref;
 };
 
 template <typename T>
@@ -44,21 +44,18 @@ SharedPointer<T>::Ref::Ref(T* i_data)
 template <typename T>
 SharedPointer<T>::Ref::~Ref() {
   assert(!count);
-  assert(data);
   delete data;
 }
 
 template <typename T>
-void SharedPointer<T>::Ref::ref() {
+void SharedPointer<T>::Ref::ref() const {
   assert(count > 0);
-  assert(data);
   ++count;
 }
 
 template <typename T>
-void SharedPointer<T>::Ref::deref() {
+void SharedPointer<T>::Ref::deref() const {
   assert(count > 0);
-  assert(data);
   --count;
   if (!count)
     delete this;
