@@ -14,50 +14,50 @@ class SharedPointer {
 
   SharedPointer& operator=(const SharedPointer& other);
 
-  T* get() const { return m_ref->data; }
+  T* get() const { return m_ref->data(); }
   void reset(T* data);
 
  private:
   class Ref {
    public:
-    explicit Ref(T* i_data);
+    explicit Ref(T* data);
     ~Ref();
 
     void ref() const;
     void deref() const;
-
-    T* const data;
+    T* data() const { return m_data; }
 
    private:
-    mutable int count;
+    T* const m_data;
+    mutable int m_count;
   };
 
   const Ref* m_ref;
 };
 
 template <typename T>
-SharedPointer<T>::Ref::Ref(T* i_data)
-    : data(i_data), count(1) {
-  assert(data);
+SharedPointer<T>::Ref::Ref(T* data)
+    : m_data(data), m_count(1) {
+  assert(m_data);
 }
 
 template <typename T>
 SharedPointer<T>::Ref::~Ref() {
-  assert(!count);
-  delete data;
+  assert(!m_count);
+  delete m_data;
 }
 
 template <typename T>
 void SharedPointer<T>::Ref::ref() const {
-  assert(count > 0);
-  ++count;
+  assert(m_count > 0);
+  ++m_count;
 }
 
 template <typename T>
 void SharedPointer<T>::Ref::deref() const {
-  assert(count > 0);
-  --count;
-  if (!count)
+  assert(m_count > 0);
+  --m_count;
+  if (!m_count)
     delete this;
 }
 
