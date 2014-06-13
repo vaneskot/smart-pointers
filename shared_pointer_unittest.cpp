@@ -90,7 +90,7 @@ void SharedPointerTest::TestCount() {
   assert(p.ref_counter_);
   assert(p.ref_counter_->data_ == p_int);
   assert(p.ref_counter_->count_ == 1);
-  assert(p_int == p.get());
+  assert(p_int == p.Get());
 
   {
     SharedPointer<int> p1(p);
@@ -108,7 +108,7 @@ void SharedPointerTest::TestCount() {
   assert(p.ref_counter_->data_ == p_int);
   assert(p.ref_counter_->count_ == 2);
 
-  p2.reset(0);
+  p2.Reset(0);
   assert(!p2.ref_counter_);
   assert(p.ref_counter_->data_ == p_int);
   assert(p.ref_counter_->count_ == 1);

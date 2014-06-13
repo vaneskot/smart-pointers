@@ -14,8 +14,8 @@ class SharedPointer {
 
   SharedPointer& operator=(const SharedPointer& other);
 
-  T* get() const { return ref_counter_->data(); }
-  void reset(T* data);
+  T* Get() const { return ref_counter_->data(); }
+  void Reset(T* data);
 
  private:
   class RefCounter {
@@ -99,7 +99,7 @@ SharedPointer<T>& SharedPointer<T>::operator=(const SharedPointer<T>& other) {
 }
 
 template <typename T>
-void SharedPointer<T>::reset(T* data) {
+void SharedPointer<T>::Reset(T* data) {
   if (ref_counter_)
     ref_counter_->Deref();
   ref_counter_ = data ? new RefCounter(data) : 0;
