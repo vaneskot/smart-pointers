@@ -3,7 +3,7 @@
 #ifndef SHARED_POINTER_H_
 #define SHARED_POINTER_H_
 
-#include <assert.h>
+#include <cassert>
 
 template <typename T>
 class SharedPointer {
@@ -14,17 +14,17 @@ class SharedPointer {
 
   SharedPointer& operator=(const SharedPointer& other);
 
-  T* get() const { return ref_->data(); }
+  T* get() const { return ref_counter_->data(); }
   void reset(T* data);
 
  private:
-  class Ref {
+  class RefCounter {
    public:
-    explicit Ref(T* data);
-    ~Ref();
+    explicit RefCounter(T* data);
+    ~RefCounter();
 
-    void ref() const;
-    void deref() const;
+    void Ref() const;
+    void Deref() const;
     T* data() const { return data_; }
 
    private:
@@ -34,31 +34,31 @@ class SharedPointer {
     friend class SharedPointerTest;
   };
 
-  const Ref* ref_;
+  const RefCounter* ref_counter_;
 
   friend class SharedPointerTest;
 };
 
 template <typename T>
-SharedPointer<T>::Ref::Ref(T* data)
+SharedPointer<T>::RefCounter::RefCounter(T* data)
     : data_(data), count_(1) {
   assert(data_);
 }
 
 template <typename T>
-SharedPointer<T>::Ref::~Ref() {
+SharedPointer<T>::RefCounter::~RefCounter() {
   assert(!count_);
   delete data_;
 }
 
 template <typename T>
-void SharedPointer<T>::Ref::ref() const {
+void SharedPointer<T>::RefCounter::Ref() const {
   assert(count_ > 0);
   ++count_;
 }
 
 template <typename T>
-void SharedPointer<T>::Ref::deref() const {
+void SharedPointer<T>::RefCounter::Deref() const {
   assert(count_ > 0);
   --count_;
   if (!count_)
@@ -67,42 +67,42 @@ void SharedPointer<T>::Ref::deref() const {
 
 template <typename T>
 SharedPointer<T>::SharedPointer(T* data)
-    : ref_(data ? new Ref(data) : 0) {
+    : ref_counter_(data ? new RefCounter(data) : 0) {
 }
 
 template <typename T>
 SharedPointer<T>::SharedPointer(const SharedPointer<T>& other)
-    : ref_(other.ref_) {
-  if (ref_) {
-    ref_->ref();
+    : ref_counter_(other.ref_counter_) {
+  if (ref_counter_) {
+    ref_counter_->Ref();
   }
 }
 
 template <typename T>
 SharedPointer<T>::~SharedPointer() {
-  if (ref_) {
-    ref_->deref();
+  if (ref_counter_) {
+    ref_counter_->Deref();
   }
 }
 
 template <typename T>
 SharedPointer<T>& SharedPointer<T>::operator=(const SharedPointer<T>& other) {
-  if (this == &other || ref_ == other.ref_)
+  if (this == &other || ref_counter_ == other.ref_counter_)
     return *this;
 
-  if (ref_)
-    ref_->deref();
+  if (ref_counter_)
+    ref_counter_->Deref();
 
-  ref_ = other.ref_;
-  if (ref_)
-    ref_->ref();
+  ref_counter_ = other.ref_counter_;
+  if (ref_counter_)
+    ref_counter_->Ref();
 }
 
 template <typename T>
 void SharedPointer<T>::reset(T* data) {
-  if (ref_)
-    ref_->deref();
-  ref_ = data ? new Ref(data) : 0;
+  if (ref_counter_)
+    ref_counter_->Deref();
+  ref_counter_ = data ? new RefCounter(data) : 0;
 }
 
 #endif  // SHARED_POINTER_H_
