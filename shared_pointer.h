@@ -14,7 +14,7 @@ class SharedPointer {
 
   SharedPointer& operator=(const SharedPointer& other);
 
-  T* get() const { return m_ref->data(); }
+  T* get() const { return ref_->data(); }
   void reset(T* data);
 
  private:
@@ -25,79 +25,84 @@ class SharedPointer {
 
     void ref() const;
     void deref() const;
-    T* data() const { return m_data; }
+    T* data() const { return data_; }
 
    private:
-    T* const m_data;
-    mutable int m_count;
+    T* const data_;
+    mutable int count_;
+
+    friend class SharedPointerTest;
   };
 
-  const Ref* m_ref;
+  const Ref* ref_;
+
+  friend class SharedPointerTest;
 };
 
 template <typename T>
 SharedPointer<T>::Ref::Ref(T* data)
-    : m_data(data), m_count(1) {
-  assert(m_data);
+    : data_(data), count_(1) {
+  assert(data_);
 }
 
 template <typename T>
 SharedPointer<T>::Ref::~Ref() {
-  assert(!m_count);
-  delete m_data;
+  assert(!count_);
+  delete data_;
 }
 
 template <typename T>
 void SharedPointer<T>::Ref::ref() const {
-  assert(m_count > 0);
-  ++m_count;
+  assert(count_ > 0);
+  ++count_;
 }
 
 template <typename T>
 void SharedPointer<T>::Ref::deref() const {
-  assert(m_count > 0);
-  --m_count;
-  if (!m_count)
+  assert(count_ > 0);
+  --count_;
+  if (!count_)
     delete this;
 }
 
 template <typename T>
 SharedPointer<T>::SharedPointer(T* data)
-    : m_ref(data ? new Ref(data) : 0) {
+    : ref_(data ? new Ref(data) : 0) {
 }
 
 template <typename T>
 SharedPointer<T>::SharedPointer(const SharedPointer<T>& other)
-    : m_ref(other.m_ref) {
-  if (m_ref) {
-    m_ref->ref();
+    : ref_(other.ref_) {
+  if (ref_) {
+    ref_->ref();
   }
 }
 
 template <typename T>
 SharedPointer<T>::~SharedPointer() {
-  if (m_ref) {
-    m_ref->deref();
+  if (ref_) {
+    ref_->deref();
   }
 }
 
 template <typename T>
 SharedPointer<T>& SharedPointer<T>::operator=(const SharedPointer<T>& other) {
-  if (this == &other || m_ref == other.m_ref)
+  if (this == &other || ref_ == other.ref_)
     return *this;
 
-  if (m_ref)
-    m_ref->deref();
+  if (ref_)
+    ref_->deref();
 
-  m_ref = other.m_ref;
-  m_ref->ref();
+  ref_ = other.ref_;
+  if (ref_)
+    ref_->ref();
 }
 
 template <typename T>
 void SharedPointer<T>::reset(T* data) {
-  if (m_ref)
-    m_ref->deref();
-  m_ref = data ? new Ref(data) : 0;
+  if (ref_)
+    ref_->deref();
+  ref_ = data ? new Ref(data) : 0;
 }
 
 #endif  // SHARED_POINTER_H_
