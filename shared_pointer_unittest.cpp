@@ -76,6 +76,7 @@ void operator delete(void* p) throw() {
   free(p);
 }
 
+namespace memory_details {
 class SharedPointerTest {
  public:
   void TestCount();
@@ -117,9 +118,10 @@ void SharedPointerTest::TestCount() {
 void SharedPointerTest::RunAllTests() {
   TestCount();
 }
+} // namespace memory_details
 
 int main() {
-  SharedPointerTest test;
+  memory_details::SharedPointerTest test;
   test.RunAllTests();
   return 0;
 }
