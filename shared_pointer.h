@@ -95,6 +95,7 @@ SharedPointer<T>& SharedPointer<T>::operator=(const SharedPointer<T>& other) {
   Deref();
   ref_counter_ = other.ref_counter_;
   Ref();
+  return *this;
 }
 
 template <typename T>

@@ -113,6 +113,12 @@ void SharedPointerTest::TestCount() {
   assert(!p2.ref_counter_);
   assert(p.ref_counter_->data_ == p_int);
   assert(p.ref_counter_->count_ == 1);
+
+  p2 = p;
+  assert(p2.ref_counter_);
+  assert(p2.ref_counter_ == p.ref_counter_);
+  assert(p.ref_counter_->data_ == p_int);
+  assert(p.ref_counter_->count_ == 2);
 }
 
 void SharedPointerTest::RunAllTests() {
