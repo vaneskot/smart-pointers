@@ -12,40 +12,61 @@ class RefCounter {
   explicit RefCounter(T* data);
   ~RefCounter();
 
-  void Ref() const;
-  void Deref() const;
+  void StrongRef();
+  void StrongDeref();
+  void WeakRef();
+  void WeakDeref();
+
   T* data() const { return data_; }
 
  private:
-  T* const data_;
-  mutable int count_;
+  T* data_;
+  int strong_count_;
+  int weak_count_;
 
   friend class SharedPointerTest;
 };
 
 template <typename T>
 RefCounter<T>::RefCounter(T* data)
-    : data_(data), count_(1) {
+    : data_(data), strong_count_(1), weak_count_(1) {
   assert(data_);
 }
 
 template <typename T>
 RefCounter<T>::~RefCounter() {
-  assert(!count_);
-  delete data_;
+  assert(!strong_count_);
+  assert(!weak_count_);
+  assert(!data_);
 }
 
 template <typename T>
-void RefCounter<T>::Ref() const {
-  assert(count_ > 0);
-  ++count_;
+void RefCounter<T>::StrongRef() {
+  assert(strong_count_ > 0);
+  ++strong_count_;
 }
 
 template <typename T>
-void RefCounter<T>::Deref() const {
-  assert(count_ > 0);
-  --count_;
-  if (!count_)
+void RefCounter<T>::StrongDeref() {
+  assert(strong_count_ > 0);
+  --strong_count_;
+  if (!strong_count_) {
+    delete data_;
+    data_ = 0;
+  }
+}
+
+template <typename T>
+void RefCounter<T>::WeakRef() {
+  assert(weak_count_ > 0);
+  ++weak_count_;
+}
+
+template <typename T>
+void RefCounter<T>::WeakDeref() {
+  assert(weak_count_ > 0);
+  --weak_count_;
+  if (!weak_count_)
     delete this;
 }
 
@@ -61,10 +82,10 @@ class SmartPointerBase {
   void Reset(T* data);
 
  protected:
-  virtual void Ref() const = 0;
-  virtual void Deref() const = 0;
+  virtual void Ref() = 0;
+  virtual void Deref() = 0;
 
-  const memory_details::RefCounter<T>* ref_counter_;
+  memory_details::RefCounter<T>* ref_counter_;
 
   friend class memory_details::SharedPointerTest;
 };
@@ -108,8 +129,8 @@ class SharedPointer : public memory_details::SmartPointerBase<T> {
   T* Get() const { return this->ref_counter_->data(); }
 
  private:
-  virtual void Ref() const;
-  virtual void Deref() const;
+  virtual void Ref();
+  virtual void Deref();
 };
 
 template <typename T>
@@ -124,14 +145,18 @@ SharedPointer<T>::~SharedPointer() {
 }
 
 template <typename T>
-void SharedPointer<T>::Ref() const {
-  if (this->ref_counter_)
-    this->ref_counter_->Ref();
+void SharedPointer<T>::Ref() {
+  if (this->ref_counter_) {
+    this->ref_counter_->WeakRef();
+    this->ref_counter_->StrongRef();
+  }
 }
 
 template <typename T>
-void SharedPointer<T>::Deref() const {
-  if (this->ref_counter_)
-    this->ref_counter_->Deref();
+void SharedPointer<T>::Deref() {
+  if (this->ref_counter_) {
+    this->ref_counter_->StrongDeref();
+    this->ref_counter_->WeakDeref();
+  }
 }
 #endif  // SHARED_POINTER_H_

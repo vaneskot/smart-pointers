@@ -90,7 +90,8 @@ void SharedPointerTest::TestCount() {
 
   assert(p.ref_counter_);
   assert(p.ref_counter_->data_ == p_int);
-  assert(p.ref_counter_->count_ == 1);
+  assert(p.ref_counter_->strong_count_ == 1);
+  assert(p.ref_counter_->weak_count_ == 1);
   assert(p_int == p.Get());
 
   {
@@ -98,27 +99,31 @@ void SharedPointerTest::TestCount() {
     assert(p1.ref_counter_);
     assert(p1.ref_counter_ == p.ref_counter_);
     assert(p.ref_counter_->data_ == p_int);
-    assert(p.ref_counter_->count_ == 2);
+    assert(p.ref_counter_->strong_count_ == 2);
+    assert(p.ref_counter_->weak_count_ == 2);
   }
 
-  assert(p.ref_counter_->count_ == 1);
+  assert(p.ref_counter_->strong_count_ == 1);
 
   SharedPointer<int> p2(p);
   assert(p2.ref_counter_);
   assert(p2.ref_counter_ == p.ref_counter_);
   assert(p.ref_counter_->data_ == p_int);
-  assert(p.ref_counter_->count_ == 2);
+  assert(p.ref_counter_->strong_count_ == 2);
+  assert(p.ref_counter_->weak_count_ == 2);
 
   p2.Reset(0);
   assert(!p2.ref_counter_);
   assert(p.ref_counter_->data_ == p_int);
-  assert(p.ref_counter_->count_ == 1);
+  assert(p.ref_counter_->strong_count_ == 1);
+  assert(p.ref_counter_->weak_count_ == 1);
 
   p2 = p;
   assert(p2.ref_counter_);
   assert(p2.ref_counter_ == p.ref_counter_);
   assert(p.ref_counter_->data_ == p_int);
-  assert(p.ref_counter_->count_ == 2);
+  assert(p.ref_counter_->strong_count_ == 2);
+  assert(p.ref_counter_->weak_count_ == 2);
 }
 
 void SharedPointerTest::RunAllTests() {
