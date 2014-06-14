@@ -48,23 +48,21 @@ void RefCounter<T>::Deref() const {
   if (!count_)
     delete this;
 }
-}  // namespace memory_details
 
 template <typename T>
-class SharedPointer {
+class SmartPointerBase {
  public:
-  explicit SharedPointer(T* data);
-  SharedPointer(const SharedPointer& other);
-  ~SharedPointer();
+  explicit SmartPointerBase(T* data);
+  SmartPointerBase(const SmartPointerBase& other);
+  virtual ~SmartPointerBase() { }
 
-  SharedPointer& operator=(const SharedPointer& other);
+  SmartPointerBase& operator=(const SmartPointerBase& other);
 
-  T* Get() const { return ref_counter_->data(); }
   void Reset(T* data);
 
- private:
-  void Ref() const;
-  void Deref() const;
+ protected:
+  virtual void Ref() const = 0;
+  virtual void Deref() const = 0;
 
   const memory_details::RefCounter<T>* ref_counter_;
 
@@ -72,23 +70,17 @@ class SharedPointer {
 };
 
 template <typename T>
-SharedPointer<T>::SharedPointer(T* data)
+SmartPointerBase<T>::SmartPointerBase(T* data)
     : ref_counter_(data ? new memory_details::RefCounter<T>(data) : 0) {
 }
 
 template <typename T>
-SharedPointer<T>::SharedPointer(const SharedPointer<T>& other)
+SmartPointerBase<T>::SmartPointerBase(const SmartPointerBase<T>& other)
     : ref_counter_(other.ref_counter_) {
-  Ref();
 }
 
 template <typename T>
-SharedPointer<T>::~SharedPointer() {
-  Deref();
-}
-
-template <typename T>
-SharedPointer<T>& SharedPointer<T>::operator=(const SharedPointer<T>& other) {
+SmartPointerBase<T>& SmartPointerBase<T>::operator=(const SmartPointerBase<T>& other) {
   if (this == &other || ref_counter_ == other.ref_counter_)
     return *this;
 
@@ -99,20 +91,47 @@ SharedPointer<T>& SharedPointer<T>::operator=(const SharedPointer<T>& other) {
 }
 
 template <typename T>
-void SharedPointer<T>::Reset(T* data) {
+void SmartPointerBase<T>::Reset(T* data) {
   Deref();
   ref_counter_ = data ? new memory_details::RefCounter<T>(data) : 0;
+}
+}  // namespace memory_details
+
+template <typename T>
+class SharedPointer : public memory_details::SmartPointerBase<T> {
+ public:
+  explicit SharedPointer(T* data)
+      : memory_details::SmartPointerBase<T>(data) { }
+  SharedPointer(const SharedPointer& other);
+  virtual ~SharedPointer();
+
+  T* Get() const { return this->ref_counter_->data(); }
+
+ private:
+  virtual void Ref() const;
+  virtual void Deref() const;
+};
+
+template <typename T>
+SharedPointer<T>::SharedPointer(const SharedPointer<T>& other)
+    : memory_details::SmartPointerBase<T>(other) {
+  Ref();
+}
+
+template <typename T>
+SharedPointer<T>::~SharedPointer() {
+  Deref();
 }
 
 template <typename T>
 void SharedPointer<T>::Ref() const {
-  if (ref_counter_)
-    ref_counter_->Ref();
+  if (this->ref_counter_)
+    this->ref_counter_->Ref();
 }
 
 template <typename T>
 void SharedPointer<T>::Deref() const {
-  if (ref_counter_)
-    ref_counter_->Deref();
+  if (this->ref_counter_)
+    this->ref_counter_->Deref();
 }
 #endif  // SHARED_POINTER_H_
