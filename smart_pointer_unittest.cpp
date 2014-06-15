@@ -16,6 +16,8 @@ class DeleteChecker {
   // them for one pointer;
   // - each allocated pointer was deallocated.
  public:
+  static bool g_enabled;
+
   static DeleteChecker& Instance();
   ~DeleteChecker();
   void Alloc(void* p);
@@ -30,13 +32,15 @@ class DeleteChecker {
   bool inside_checker_;
 };
 
+bool DeleteChecker::g_enabled = true;
+
 DeleteChecker& DeleteChecker::Instance() {
   static DeleteChecker instance;
   return instance;
 }
 
 DeleteChecker::~DeleteChecker() {
-  inside_checker_ = true;
+  g_enabled = false;
   for (MemoryMap::iterator it = alloc_map_.begin();
       it != alloc_map_.end(); ++it) {
     assert(!it->second);
@@ -44,7 +48,7 @@ DeleteChecker::~DeleteChecker() {
 }
 
 void DeleteChecker::Alloc(void* p) {
-  if (!inside_checker_) {
+  if (!inside_checker_ && g_enabled) {
     inside_checker_ = true;
     ++alloc_map_[p];
     assert(alloc_map_[p] == 1);
@@ -53,7 +57,7 @@ void DeleteChecker::Alloc(void* p) {
 }
 
 void DeleteChecker::Dealloc(void* p) {
-  if (!inside_checker_) {
+  if (!inside_checker_ && g_enabled) {
     inside_checker_ = true;
     assert(alloc_map_[p] > 0);
     --alloc_map_[p];
