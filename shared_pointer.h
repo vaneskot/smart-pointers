@@ -4,8 +4,10 @@
 #define SHARED_POINTER_H_
 
 #include <cassert>
+
 namespace memory_details {
-class SharedPointerTest;
+class SmartPointerTest;
+
 template <typename T>
 class RefCounter {
  public:
@@ -24,7 +26,7 @@ class RefCounter {
   int strong_count_;
   int weak_count_;
 
-  friend class SharedPointerTest;
+  friend class SmartPointerTest;
 };
 
 template <typename T>
@@ -87,7 +89,7 @@ class SmartPointerBase {
 
   memory_details::RefCounter<T>* ref_counter_;
 
-  friend class memory_details::SharedPointerTest;
+  friend class memory_details::SmartPointerTest;
 };
 
 template <typename T>
@@ -97,7 +99,8 @@ SmartPointerBase<T>::SmartPointerBase(T* data)
 
 template <typename T>
 SmartPointerBase<T>::SmartPointerBase(const SmartPointerBase<T>& other)
-    : ref_counter_(other.ref_counter_) {
+    : ref_counter_(other.ref_counter_ && other.ref_counter_->data()
+          ? other.ref_counter_ : 0) {
 }
 
 template <typename T>
@@ -106,7 +109,8 @@ SmartPointerBase<T>& SmartPointerBase<T>::operator=(const SmartPointerBase<T>& o
     return *this;
 
   Deref();
-  ref_counter_ = other.ref_counter_;
+  ref_counter_ = other.ref_counter_ && other.ref_counter_->data()
+      ? other.ref_counter_ : 0;
   Ref();
   return *this;
 }
@@ -119,6 +123,9 @@ void SmartPointerBase<T>::Reset(T* data) {
 }  // namespace memory_details
 
 template <typename T>
+class WeakPointer;
+
+template <typename T>
 class SharedPointer : public memory_details::SmartPointerBase<T> {
  public:
   explicit SharedPointer(T* data)
@@ -129,8 +136,11 @@ class SharedPointer : public memory_details::SmartPointerBase<T> {
   T* Get() const { return this->ref_counter_->data(); }
 
  private:
+  explicit SharedPointer(const WeakPointer<T>& other);
   virtual void Ref();
   virtual void Deref();
+
+  friend class WeakPointer<T>;
 };
 
 template <typename T>
@@ -142,6 +152,12 @@ SharedPointer<T>::SharedPointer(const SharedPointer<T>& other)
 template <typename T>
 SharedPointer<T>::~SharedPointer() {
   Deref();
+}
+
+template <typename T>
+SharedPointer<T>::SharedPointer(const WeakPointer<T>& other)
+    : memory_details::SmartPointerBase<T>(other) {
+  Ref();
 }
 
 template <typename T>
@@ -159,4 +175,58 @@ void SharedPointer<T>::Deref() {
     this->ref_counter_->WeakDeref();
   }
 }
+
+template <typename T>
+class WeakPointer : public memory_details::SmartPointerBase<T> {
+ public:
+  explicit WeakPointer(const SharedPointer<T>& other);
+  WeakPointer(const WeakPointer<T>& other);
+  virtual ~WeakPointer();
+
+  SharedPointer<T> lock();
+
+ private:
+  virtual void Ref();
+  virtual void Deref();
+  void Reset() { }
+};
+
+template <typename T>
+WeakPointer<T>::WeakPointer(const SharedPointer<T>& other)
+    : memory_details::SmartPointerBase<T>(other) {
+  Ref();
+}
+
+template <typename T>
+WeakPointer<T>::WeakPointer(const WeakPointer<T>& other)
+    : memory_details::SmartPointerBase<T>(other) {
+  Ref();
+}
+
+template <typename T>
+WeakPointer<T>::~WeakPointer() {
+  Deref();
+}
+
+template <typename T>
+SharedPointer<T> WeakPointer<T>::lock() {
+  if (this->ref_counter_ && !this->ref_counter_->data()) {
+    Deref();
+    this->ref_counter_ = 0;
+  }
+  return SharedPointer<T>(*this);
+}
+
+template <typename T>
+void WeakPointer<T>::Ref() {
+  if (this->ref_counter_)
+    this->ref_counter_->WeakRef();
+}
+
+template <typename T>
+void WeakPointer<T>::Deref() {
+  if (this->ref_counter_)
+    this->ref_counter_->WeakDeref();
+}
+
 #endif  // SHARED_POINTER_H_

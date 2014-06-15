@@ -77,14 +77,15 @@ void operator delete(void* p) throw() {
 }
 
 namespace memory_details {
-class SharedPointerTest {
+class SmartPointerTest {
  public:
-  void TestCount();
+  void TestSharedPointer();
+  void TestWeakPointer();
 
   void RunAllTests();
 };
 
-void SharedPointerTest::TestCount() {
+void SmartPointerTest::TestSharedPointer() {
   int* p_int = new int;
   SharedPointer<int> p(p_int);
 
@@ -126,13 +127,72 @@ void SharedPointerTest::TestCount() {
   assert(p.ref_counter_->weak_count_ == 2);
 }
 
-void SharedPointerTest::RunAllTests() {
-  TestCount();
+void SmartPointerTest::TestWeakPointer() {
+  int* p_int = new int;
+  SharedPointer<int> p(p_int);
+
+  assert(p.ref_counter_);
+  assert(p.ref_counter_->data_ == p_int);
+  assert(p.ref_counter_->strong_count_ == 1);
+  assert(p.ref_counter_->weak_count_ == 1);
+  assert(p_int == p.Get());
+
+  WeakPointer<int> wp(p);
+  assert(wp.ref_counter_);
+  assert(p.ref_counter_ == wp.ref_counter_);
+  assert(p.ref_counter_->strong_count_ == 1);
+  assert(p.ref_counter_->weak_count_ == 2);
+  assert(p_int == p.Get());
+
+  SharedPointer<int> p1(wp.lock());
+  assert(p.ref_counter_ == p1.ref_counter_);
+  assert(p.ref_counter_->strong_count_ == 2);
+  assert(p.ref_counter_->weak_count_ == 3);
+  assert(p_int == p.Get());
+
+  {
+    WeakPointer<int> wp1(wp);
+    assert(p.ref_counter_ == wp1.ref_counter_);
+    assert(p.ref_counter_->strong_count_ == 2);
+    assert(p.ref_counter_->weak_count_ == 4);
+    assert(p_int == p.Get());
+  }
+
+  assert(p.ref_counter_->strong_count_ == 2);
+  assert(p.ref_counter_->weak_count_ == 3);
+  assert(p_int == p.Get());
+
+  WeakPointer<int> wp1(wp);
+  assert(p.ref_counter_ == wp1.ref_counter_);
+  assert(p.ref_counter_->strong_count_ == 2);
+  assert(p.ref_counter_->weak_count_ == 4);
+  assert(p_int == p.Get());
+
+  p.Reset(0);
+  p1.Reset(0);
+  assert(!p.ref_counter_ && !p1.ref_counter_);
+  assert(wp.ref_counter_);
+  assert(wp.ref_counter_->strong_count_ == 0);
+  assert(wp.ref_counter_->weak_count_ == 2);
+  assert(wp.ref_counter_->data_ == 0);
+
+  p = wp1.lock();
+
+  assert(p.ref_counter_ == 0);
+  assert(wp1.ref_counter_ == 0);
+  assert(wp.ref_counter_);
+  assert(wp.ref_counter_->strong_count_ == 0);
+  assert(wp.ref_counter_->weak_count_ == 1);
+}
+
+void SmartPointerTest::RunAllTests() {
+  TestSharedPointer();
+  TestWeakPointer();
 }
 } // namespace memory_details
 
 int main() {
-  memory_details::SharedPointerTest test;
+  memory_details::SmartPointerTest test;
   test.RunAllTests();
   return 0;
 }
