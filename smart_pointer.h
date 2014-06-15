@@ -1,7 +1,7 @@
 // Author: Ivan Kotenkov <ivan.kotenkov@gmail.com>
 
-#ifndef SHARED_POINTER_H_
-#define SHARED_POINTER_H_
+#ifndef SMART_POINTER_H_
+#define SMART_POINTER_H_
 
 #include <cassert>
 
@@ -229,4 +229,4 @@ void WeakPointer<T>::Deref() {
     this->ref_counter_->WeakDeref();
 }
 
-#endif  // SHARED_POINTER_H_
+#endif  // SMART_POINTER_H_

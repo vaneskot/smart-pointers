@@ -1,6 +1,6 @@
 // Author: Ivan Kotenkov <ivan.kotenkov@gmail.com>
 
-#include "shared_pointer.h"
+#include "smart_pointer.h"
 
 #include <cassert>
 #include <map>
