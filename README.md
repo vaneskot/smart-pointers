@@ -1,2 +1,2 @@
-Simple SharedPointer class, written for fun.
-The class is not thread safe.
+Simple smart pointer classes, written for fun.
+The classes are not thread safe.
